@@ -1,0 +1,23 @@
+{
+    "settings": "Settings",
+    "general": "General",
+    "launcher": "Launcher",
+    "developer": "Developer",
+    "language": "Language",
+    "game_directory": "Game Directory",
+    "browse": "Browse",
+    "developer_mode": "Developer Mode",
+    "developer_mode_desc": "Shows the log console for debugging.",
+    "launch": "Launch",
+    "launch_running": "Running...",
+    "launch_invalid": "Invalid Path",
+    "search_drives_title": "Search All Drives?",
+    "search_drives_message": "Aurora will scan all drives to locate your Neverness To Everness installation. This may take a few seconds.",
+    "search": "Search",
+    "cancel": "Cancel",
+    "toast_game_found": "Game found! Ready to launch.",
+    "toast_game_not_found": "Could not find NTE. Set path manually in Settings.",
+    "toast_launching": "Launching NTE...",
+    "toast_engine_error": "Error: Engine not initialized (e:2)",
+    "search_tooltip": "Search all drives for NTE"
+}
