@@ -46,8 +46,20 @@ Aurora is an open-source community project, any help with the source code is gre
 > 
 > If that doesn't find the game either, head over to the settings icon top left and under the **"Launcher"** tab, manually select your Neverness To Everness download location.
 ### ᅠ
-## Translation Status
+### Building the Application from Source
+> [!NOTE]
+> For the simple average user, this is not recommended. Only build from source if you don't trust the Portable installation or plan on modifying the source code of the program.
 
+> [!IMPORTANT]
+> In order to build the project, you must have [Python 3.14.5](https://www.python.org/downloads/release/python-3145/) and [VCRedist](https://aka.ms/vs/17/release/vc_redist.x64.exe) installed on your computer.
+1. Download the ZIP source code of this project. **(Code Button > "Download ZIP")**
+2. Extract source code to your desired path.
+3. Open a command prompt in the root folder of the project **(the one that houses build.py and main.py)**
+4. Run `pip install -r dev/requirements.txt`
+5. Run `python build.py` or `py build.py`
+6. 
+### ᅠ
+## Translation Status
 | Language | Status | File | Status |
 | :--- | :--- | :---: | :---: |
 | <img src="https://flagcdn.com/w20/gb.png" width="20"> English | ![100%](https://geps.dev/progress/100?dangerColor=e05d44&warningColor=dfb317&successColor=2ea44f) | `en.json` |
@@ -59,3 +71,9 @@ Aurora is an open-source community project, any help with the source code is gre
 | <img src="https://flagcdn.com/w20/cn.png" width="20"> Chinese (Simplified) | ![70%](https://geps.dev/progress/70?dangerColor=e05d44&warningColor=dfb317&successColor=2ea44f) | `cn.json` | (Unofficial Translation) |
 | <img src="https://flagcdn.com/w20/jp.png" width="20"> Japanese | ![70%](https://geps.dev/progress/70?dangerColor=e05d44&warningColor=dfb317&successColor=2ea44f) | `jp.json` | (Unofficial Translation) |
 | <img src="https://flagcdn.com/w20/kr.png" width="20"> Korean | ![70%](https://geps.dev/progress/0?dangerColor=e05d44&warningColor=dfb317&successColor=2ea44f) | `kr.json` | No Translation |
+
+### ᅠ
+## Contributors
+<a href="https://github.com/Daturaxoxo/Aurora/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Daturaxoxo/Aurora&anon=1" />
+</a>
