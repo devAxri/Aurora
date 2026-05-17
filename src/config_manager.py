@@ -5,18 +5,20 @@ import json
 LANG_CODES = {
     "English":  "en",
     "Türkçe":   "tr",
-    "中文":      "ch",
+    "中文":      "cn",
     "日本語":    "jp",
+    "Español":   "es",
 }
 # Reverse map: code -> display name
 LANG_NAMES = {v: k for k, v in LANG_CODES.items()}
 
 DEFAULTS = {
-    "game_path": "",
-    "language":  "en",
-    "dev_mode":  False,
-    "csn_rem": True,
-    "drv_lin": False,
+    "game_path":    "",
+    "language":     "en",
+    "dev_mode":     False,
+    "csn_rem":      True,
+    "drv_lin":      False,
+    "discord_rpc":  True,
 }
 
 def get_app_dir():
@@ -49,11 +51,9 @@ def _save_raw(data: dict):
 # Public API
 
 def get(key: str):
-    """Returns a config value, falling back to DEFAULTS."""
     return _load_raw().get(key, DEFAULTS.get(key))
 
 def set(key: str, value):
-    """Writes a single key into config.json."""
     data = _load_raw()
     data[key] = value
     _save_raw(data)
@@ -89,3 +89,9 @@ def get_no_drive_line() -> bool:
 
 def set_no_drive_line(enabled: bool):
     set("drv_lin", enabled)
+
+def get_discord_rpc() -> bool:
+    return bool(get("discord_rpc"))
+
+def set_discord_rpc(enabled: bool):
+    set("discord_rpc", enabled)
