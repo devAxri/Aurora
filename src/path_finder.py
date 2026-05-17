@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 def get_app_dir():
-    """Returns the directory of the EXE (frozen) or the project root (dev)."""
     if getattr(sys, 'frozen', False):
         return os.path.dirname(sys.executable)
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -32,7 +31,6 @@ def load_config():
         return None
 
 def validate_path(path):
-    """Checks if the directory contains the required NTE files."""
     if not path:
         return False
     try:
@@ -45,10 +43,6 @@ def validate_path(path):
         return False
 
 def _candidate_directories():
-    """
-    Yields all directories that NTE might plausibly be installed in.
-    Covers: all ProgramFiles env vars, all drive roots, and Steam/Epic common paths.
-    """
     checked = set()
 
     def emit(path):
@@ -79,10 +73,6 @@ def _candidate_directories():
                 yield from emit(os.path.join(drive, subfolder, GAME_FOLDER_NAME))
 
 def get_game_directory():
-    """
-    Resolves the game directory with a clear priority order.
-    Returns the path string if found, or None with a logged reason.
-    """
     # Lazy import to avoid circular dependency at module load time, I f####ng hate you for this Python.
     try:
         from src.logger import logger
