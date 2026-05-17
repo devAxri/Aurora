@@ -5,6 +5,7 @@
     "launcher": "ランチャー",
     "developer": "開発者",
     "language": "言語",
+    "language_desc": "インターフェースの表示言語",
     "game_directory": "ゲームディレクトリ",
     "browse": "参照",
     "developer_mode": "デベロッパーモード",
@@ -20,5 +21,15 @@
     "toast_game_not_found": "NTE が見つかりません。設定からパスを手動で入力してください。",
     "toast_launching": "NTE を起動中...",
     "toast_engine_error": "エラー：エンジンが初期化されていません (e:2)",
-    "search_tooltip": "全ドライブで NTE を検索"
+    "search_tooltip": "全ドライブで NTE を検索",
+    "censorship_removal": "検閲解除ツール",
+    "censorship_removal_desc": "特定の角度でキャラクターが透過するエフェクトを無効化。 (クレジット： cp0bi)",
+    "no_drive_line": "ドライブライン非表示",
+    "no_drive_line_desc": "運転中に表示される3D GPSナビゲーションライン (クレジット： Rokkudayo) ",
+    "search_mods": "ローカルMODを検索...",
+    "mod_manager_unknown": "不明",
+    "mod_manager_author": "作者: ",
+    "mod_manager_restart": "再起動",
+    "discord_rpc": "Discord RPC",
+    "discord_rpc_desc": "内蔵 Discord RPC の有効化/無効化"
 }
