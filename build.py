@@ -7,7 +7,13 @@ from datetime import datetime
 # CONFIGURATION 
 APP_NAME = "Aurora"          # No spaces, avoids ShellExecuteW and PyInstaller errors
 DISPLAY_NAME = "Aurora Launcher"
-VERSION = "0.2.0"
+VERSION_FILE = os.path.join("dev", "VERSION")
+if not os.path.exists(VERSION_FILE):
+    print(f"FATAL: Version file not found at {VERSION_FILE}. Make sure it exists before building.")
+    raise SystemExit(1)
+
+with open(VERSION_FILE, "r", encoding="utf-8") as f:
+    VERSION = f.read().strip()
 ICON_PATH = "Bin/Assets/logo.ico"
 MAIN_SCRIPT = "main.py"
 DIST_DIR = f"./dist/{APP_NAME}_v{VERSION}"
@@ -53,13 +59,11 @@ def run_build():
         print("Check the output above for the real error before proceeding.")
         raise SystemExit(1)
 
-    # 3. Organize production folder
     print("Organizing output folder...")
     os.makedirs(DIST_DIR, exist_ok=True)
     os.makedirs(os.path.join(DIST_DIR, "Mods"), exist_ok=True)
     os.makedirs(os.path.join(DIST_DIR, "Logs"), exist_ok=True)
 
-    # Move the EXE
     src_exe = f"./dist/{APP_NAME}.exe"
     dst_exe = os.path.join(DIST_DIR, f"{APP_NAME}.exe")
     if not os.path.exists(src_exe):
@@ -67,19 +71,12 @@ def run_build():
         raise SystemExit(1)
     shutil.move(src_exe, dst_exe)
 
-    # 4. Copy Bin folder
     if os.path.exists("./Bin"):
         shutil.copytree("./Bin", os.path.join(DIST_DIR, "Bin"), dirs_exist_ok=True)
 
-    # 5. Create distribution ZIP file
     zip_name = f"{APP_NAME}_v{VERSION}.zip"
     print(f"Creating archive: {zip_name}")
 
-    # Use a fixed anchor so the ZIP structure is always:
-    #   Aurora_v1.0.0/Aurora.exe
-    #   Aurora_v1.0.0/Bin/...
-    #   Aurora_v1.0.0/Mods/
-    #   Aurora_v1.0.0/Logs/
     zip_anchor = "./dist"
     with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_DEFLATED) as zipf:
         for root, dirs, files in os.walk(DIST_DIR):
