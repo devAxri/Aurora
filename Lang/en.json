@@ -4,6 +4,7 @@
     "launcher": "Launcher",
     "developer": "Developer",
     "language": "Language",
+    "language_desc": "Interface display language",
     "game_directory": "Game Directory",
     "browse": "Browse",
     "developer_mode": "Developer Mode",
@@ -19,5 +20,15 @@
     "toast_game_not_found": "Could not find NTE. Set path manually in Settings.",
     "toast_launching": "Launching NTE...",
     "toast_engine_error": "Error: Engine not initialized (e:2)",
-    "search_tooltip": "Search all drives for NTE"
+    "search_tooltip": "Search all drives for NTE",
+    "censorship_removal": "Censorship Remover",
+    "censorship_removal_desc": "Removes the alpha effect when looking at characters on an angle. (Credits: cp0bi)",
+    "no_drive_line": "No Drive Line",
+    "no_drive_line_desc": "Removes the 3D GPS driving line created while driving. (Credits: Rokkudayo)",
+    "search_mods": "Search local mods...",
+    "mod_manager_unknown": "Unknown",
+    "mod_manager_author": "by ",
+    "mod_manager_restart": "RESTART",
+    "discord_rpc": "Discord RPC",
+    "discord_rpc_desc": "Toggle the in-built Discord RPC"
 }
