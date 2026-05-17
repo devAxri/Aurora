@@ -16,7 +16,7 @@ from PyQt6.QtCore import Qt, QSize, QThread, QPoint, QTimer, QPropertyAnimation,
 from PyQt6.QtGui import QPixmap, QIcon, QPainter, QColor
 from src.logger import logger, dev_console_handler, file_handler
 from src.path_finder import validate_path, get_game_directory
-from src.styles import MAIN_STYLE, SETTING_STYLE, TOAST_STYLE, POPUP_STYLE
+from src.styles import MAIN_STYLE, SETTING_STYLE, TOAST_STYLE, POPUP_STYLE, MOD_MANAGER_STYLE
 from src import config_manager as cfg
 from src.translator import Translator, t
 from src.engine import get_app_dir
@@ -198,7 +198,6 @@ class PopupDialog(QWidget):
 
 # ─────────────────────────────────────────────
 # DEV CONSOLE PANEL
-# Shown at bottom of window when dev mode is on.
 # ─────────────────────────────────────────────
 class DevConsolePanel(QFrame):
     def __init__(self, parent=None):
@@ -260,14 +259,8 @@ class DevConsolePanel(QFrame):
 
 # ─────────────────────────────────────────────
 # SETTING ROW
-# A card-style row with a label, description, and an AnimatedToggle on the right.
-# Hosts AnimatedToggle, so it must implement handle_toggle().
 # ─────────────────────────────────────────────
 class SettingRow(QFrame):
-    """
-    A single toggle row rendered as a pill-card inside a settings page.
-    Pass on_toggle(bool) to receive state changes.
-    """
     def __init__(self, title, description, checked=False, on_toggle=None, parent=None):
         super().__init__(parent)
         self._on_toggle = on_toggle
@@ -369,7 +362,7 @@ class SettingsOverlay(QFrame):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        # ── Sidebar ──────────────────────────────────────
+        # Sidebar
         sidebar = QFrame()
         sidebar.setObjectName("SettingsSidebar")
         sidebar.setFixedWidth(180)
@@ -398,7 +391,7 @@ class SettingsOverlay(QFrame):
 
         sidebar_layout.addStretch()
 
-        # ── Content area ─────────────────────────────────
+        # Content Area
         self.stack = QStackedWidget()
         self.stack.setContentsMargins(0, 0, 0, 0)
 
@@ -430,6 +423,7 @@ class SettingsOverlay(QFrame):
         self.btn_launcher.setText(t("launcher"))
         self.btn_developer.setText(t("developer"))
         self._lbl_language.setText(t("language"))
+        self._lbl_language_desc.setText(t("language_desc"))
         self._lbl_game_dir.setText(t("game_directory"))
         self._btn_browse.setText(t("browse"))
         self._row_cr.set_title(t("censorship_removal"))
@@ -438,10 +432,11 @@ class SettingsOverlay(QFrame):
         self._row_ndl.set_description(t("no_drive_line_desc"))
         self._row_dev.set_title(t("developer_mode"))
         self._row_dev.set_description(t("developer_mode_desc"))
+        self._row_rpc.set_title(t("discord_rpc"))
+        self._row_rpc.set_description(t("discord_rpc_desc"))
 
     # ── Helpers ──────────────────────────────────────────
     def _make_page(self):
-        """Returns a scrollable page widget with a standard VBoxLayout."""
         page = QWidget()
         layout = QVBoxLayout(page)
         layout.setContentsMargins(32, 32, 32, 32)
@@ -472,7 +467,7 @@ class SettingsOverlay(QFrame):
         layout.addWidget(self._section_label("Appearance"))
         layout.addSpacing(10)
 
-        # Language row — inline card matching SettingRow height/radius
+        # Language row
         lang_card = QFrame()
         lang_card.setObjectName("LangCard")
         lang_card.setFixedHeight(68)
@@ -490,7 +485,8 @@ class SettingsOverlay(QFrame):
         lang_text.setSpacing(3)
         self._lbl_language = QLabel()
         self._lbl_language.setStyleSheet("color: #E8E8E8; font-size: 14px; font-weight: 500; background: transparent; border: none;")
-        lang_sub = QLabel("Interface display language")
+        lang_sub = QLabel(t("language_desc"))
+        self._lbl_language_desc = lang_sub
         lang_sub.setStyleSheet("color: #707070; font-size: 12px; background: transparent; border: none;")
         lang_text.addStretch()
         lang_text.addWidget(self._lbl_language)
@@ -499,7 +495,7 @@ class SettingsOverlay(QFrame):
 
         from src.config_manager import LANG_NAMES
         self._lang_box = QComboBox()
-        self._lang_box.addItems(["English", "Türkçe", "中文", "日本語"])
+        self._lang_box.addItems(["English", "Türkçe", "中文", "日本語", "Español"])
         self._lang_box.setFixedWidth(160)
         current_code = cfg.get_language()
         display = LANG_NAMES.get(current_code, "English")
@@ -513,6 +509,19 @@ class SettingsOverlay(QFrame):
         lang_row.addWidget(self._lang_box)
 
         layout.addWidget(lang_card)
+        layout.addSpacing(24)
+
+        # Integration
+        layout.addWidget(self._section_label("Integration"))
+        layout.addSpacing(10)
+
+        self._row_rpc = SettingRow(
+            title="",
+            description="",
+            checked=cfg.get_discord_rpc(),
+            on_toggle=self._toggle_rpc,
+        )
+        layout.addWidget(self._row_rpc)
         layout.addStretch()
         return page
 
@@ -531,7 +540,7 @@ class SettingsOverlay(QFrame):
         layout.addWidget(page_title)
         layout.addSpacing(24)
 
-        # ── Game directory ───────────────────
+        # Game Directory
         layout.addWidget(self._section_label("Game Directory"))
         layout.addSpacing(10)
 
@@ -590,13 +599,13 @@ class SettingsOverlay(QFrame):
         layout.addWidget(path_card)
         layout.addSpacing(24)
 
-        # ── Gameplay ─────────────────────────
+        # Gameplay
         layout.addWidget(self._section_label("Gameplay"))
         layout.addSpacing(10)
 
         self._row_cr = SettingRow(
             title="Censorship Removal",
-            description="Deploys ntfrmain.asi + cutils.dll to remove transparency filters",
+            description="",
             checked=cfg.get_censorship_removal(),
             on_toggle=self._toggle_cr_mode,
         )
@@ -605,7 +614,7 @@ class SettingsOverlay(QFrame):
 
         self._row_ndl = SettingRow(
             title="No Drive Line",
-            description="Hides the 3D navigation line shown while travelling to a destination",
+            description="",
             checked=cfg.get_no_drive_line(),
             on_toggle=self._toggle_ndl_mode,
         )
@@ -633,6 +642,20 @@ class SettingsOverlay(QFrame):
         main_ui = self.parent().parent()
         if main_ui.engine:
             main_ui.engine.no_drive_line = new_state
+
+    def _toggle_rpc(self, new_state):
+        cfg.set_discord_rpc(new_state)
+        main_ui = self.parent().parent()
+        if new_state:
+            from src.discord_rpc import DiscordRPC
+            if hasattr(main_ui, 'rpc'):
+                main_ui.rpc.stop()
+            main_ui.rpc = DiscordRPC()
+            main_ui.rpc.set_idle()
+            main_ui.rpc.start()
+        else:
+            if hasattr(main_ui, 'rpc'):
+                main_ui.rpc.stop()
 
     # ── Developer page ───────────────────────────────────
     def _create_developer_page(self):
@@ -709,66 +732,133 @@ class AnimatedToggle(QWidget):
         painter.setBrush(self._handle_color)
         painter.drawEllipse(self._handle_position, 3, 20, 20)
 
+def _get_mod_image(mod_folder_name: str, mod_display_name: str) -> QPixmap:
+    images_dir = Path(resource_path("Bin/Assets/ModImages"))
+    if not images_dir.exists():
+        return QPixmap()
+
+    images = sorted(
+        p for p in images_dir.iterdir()
+        if p.suffix.lower() in (".png", ".jpg", ".jpeg")
+    )
+    if not images:
+        return QPixmap()
+
+    name_lower = mod_display_name.lower()
+
+    # Character match (Longest character name will be picked)
+    best_match = None
+    best_length = 0
+    for img_path in images:
+        character = img_path.stem.lower()
+        if character in name_lower and len(character) > best_length:
+            best_match = img_path
+            best_length = len(character)
+
+    if best_match:
+        return QPixmap(str(best_match))
+
+    # Stable fallback
+    idx = hash(mod_folder_name) % len(images)
+    return QPixmap(str(images[idx]))
+
+
+class ModImage(QLabel):
+    RADIUS = 6
+
+    def __init__(self, pixmap: QPixmap, size: int, parent=None):
+        super().__init__(parent)
+        self.setObjectName("ModImage")
+        self.setFixedSize(size, size)
+        self._source = pixmap
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        from PyQt6.QtGui import QPainterPath
+        path = QPainterPath()
+        path.addRoundedRect(0, 0, self.width(), self.height(), self.RADIUS, self.RADIUS)
+        painter.setClipPath(path)
+
+        if not self._source.isNull():
+            scaled = self._source.scaled(
+                self.size(),
+                Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            x = (self.width()  - scaled.width())  // 2
+            y = (self.height() - scaled.height()) // 2
+            painter.drawPixmap(x, y, scaled)
+        else:
+            # Fallback: filled rect so the slot isn't invisible
+            painter.fillRect(self.rect(), QColor(40, 40, 50))
+
+        painter.end()
+
+
 class ModCard(QFrame):
     def __init__(self, mod, manager, is_game_running, parent_overlay):
         super().__init__()
         self.setObjectName("ModCard")
         self.setFixedHeight(72)
-        
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)
+
         self.mod = mod
         self.manager = manager
         self.is_game_running = is_game_running
-        self.session_initial_state = mod.is_enabled 
+        self.session_initial_state = mod.is_enabled
         self.parent_overlay = parent_overlay
 
-        self.setStyleSheet("""
-            #ModCard {
-                background-color: rgba(30, 30, 40, 150);
-                border-radius: 8px;
-                border: 1px solid rgba(255, 255, 255, 10);
-            }
-            #ModCard:hover {
-                background-color: rgba(40, 40, 55, 200);
-                border: 1px solid rgba(0, 162, 255, 60);
-            }
-            #ModTitle { color: #FFFFFF; font-size: 14px; font-weight: 600; }
-            #ModMeta { color: #969696; font-size: 12px; }
-            #ModVersion { color: #808080; font-family: 'Consolas'; font-size: 12px; }
-            #RestartBadge { 
-                color: #FF4B4B; border: 1px solid #FF4B4B; 
-                border-radius: 4px; padding: 2px 5px; font-size: 10px; font-weight: bold;
-            }
-        """)
-
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(20, 0, 20, 0)
-        layout.setSpacing(15)
+        layout.setContentsMargins(14, 0, 20, 0)
+        layout.setSpacing(14)
+
+        # Mod Thumbnail
+        pixmap = _get_mod_image(mod.folder_name, mod.display_name)
+        thumb = ModImage(pixmap, 44)
+        layout.addWidget(thumb)
 
         # Mod Info
         info_vbox = QVBoxLayout()
-        info_vbox.setSpacing(2)
+        info_vbox.setSpacing(3)
+
         self.title = QLabel(mod.display_name)
         self.title.setObjectName("ModTitle")
-        
-        meta = QLabel(f"by {mod.author}")
-        meta.setObjectName("ModMeta")
-        
-        info_vbox.addStretch()
-        info_vbox.addWidget(self.title)
-        info_vbox.addWidget(meta)
-        info_vbox.addStretch()
-        layout.addLayout(info_vbox)
 
-        layout.addStretch()
+        meta_row = QHBoxLayout()
+        meta_row.setSpacing(10)
+        meta_row.setContentsMargins(0, 0, 0, 0)
 
-        # Version String
+        author_text = f"{t('mod_manager_author')}{mod.author}"
+        has_link = mod.support_link.startswith("https://")
+
+        if has_link:
+            meta = QLabel(author_text)
+            meta.setObjectName("ModAuthorLink")
+            meta.setCursor(Qt.CursorShape.PointingHandCursor)
+            meta.mousePressEvent = lambda _e, url=mod.support_link: self._open_support_link(url)
+        else:
+            meta = QLabel(author_text)
+            meta.setObjectName("ModMeta")
+
         version_lbl = QLabel(mod.version)
         version_lbl.setObjectName("ModVersion")
-        layout.addWidget(version_lbl)
-        layout.addSpacing(20)
+
+        meta_row.addWidget(meta)
+        meta_row.addWidget(version_lbl)
+        meta_row.addStretch()
+
+        info_vbox.addStretch()
+        info_vbox.addWidget(self.title)
+        info_vbox.addLayout(meta_row)
+        info_vbox.addStretch()
+
+        layout.addLayout(info_vbox)
+        layout.addStretch()
 
         # Restart Badge
-        self.restart_badge = QLabel("RESTART")
+        self.restart_badge = QLabel(t("mod_manager_restart"))
         self.restart_badge.setObjectName("RestartBadge")
         self.restart_badge.setVisible(False)
         layout.addWidget(self.restart_badge)
@@ -778,16 +868,30 @@ class ModCard(QFrame):
         self.toggle.setChecked(mod.is_enabled)
         layout.addWidget(self.toggle)
 
+    def _open_support_link(self, url: str):
+        if not url.startswith("https://"):
+            return
+        PopupDialog(
+            parent=self.parent_overlay,
+            title="Open Support Link",
+            message=f"{url}",
+            confirm_text="Open in Browser",
+            cancel_text=t("cancel"),
+            on_confirm=lambda: webbrowser.open(url),
+        )
+
     def handle_toggle(self):
         new_state = self.toggle.isChecked()
-        
+
         if self.is_game_running:
             self.restart_badge.setVisible(new_state != self.session_initial_state)
-        
+
         new_folder_name = self.manager.toggle_mod(self.mod)
         if new_folder_name:
             self.mod.folder_name = new_folder_name
             self.mod.is_enabled = new_state
+
+        self.parent_overlay._update_mod_count()
 
 class ModManagerOverlay(QFrame):
     def __init__(self, parent, mod_manager, is_game_running):
@@ -795,60 +899,169 @@ class ModManagerOverlay(QFrame):
         self.setObjectName("ModManagerOverlay")
         self.manager = mod_manager
         self.is_game_running = is_game_running
-        
-        self.setGeometry(240, 80, 800, 560) 
-        self.setStyleSheet("""
-            #ModManagerOverlay {
-                background-color: rgba(10, 8, 18, 240);
-                border: 1px solid #333333;
-                border-radius: 15px;
-            }
-            QLineEdit {
-                background-color: #1A1A1A;
-                border: 1px solid #333;
-                border-radius: 5px;
-                color: white;
-                padding: 10px;
-            }
-            QScrollArea { background: transparent; border: none; }
-            #ScrollContent { background: transparent; }
-        """)
-        
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(30, 25, 30, 25)
 
-        # Search Bar
+        self.setGeometry(240, 80, 800, 560)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)
+        self.setStyleSheet(MOD_MANAGER_STYLE)
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+
+        # Header
+        header = QFrame()
+        header.setObjectName("ModManagerHeader")
+        header.setFixedHeight(64)
+        header.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)
+
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(28, 0, 20, 0)
+        header_layout.setSpacing(12)
+
+        title_col = QVBoxLayout()
+        title_col.setSpacing(2)
+        lbl_title = QLabel(t("mod_manager") if hasattr(self, "_tr") else "Mod Manager")
+        lbl_title.setObjectName("ModManagerTitle")
+        self._lbl_mod_count = QLabel("")
+        self._lbl_mod_count.setObjectName("ModCount")
+        title_col.addStretch()
+        title_col.addWidget(lbl_title)
+        title_col.addWidget(self._lbl_mod_count)
+        title_col.addStretch()
+
+        btn_close = QPushButton("✕")
+        btn_close.setObjectName("ModManagerClose")
+        btn_close.setFixedSize(32, 32)
+        btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_close.clicked.connect(self.hide)
+
+        header_layout.addLayout(title_col)
+        header_layout.addStretch()
+        header_layout.addWidget(btn_close)
+
+        root.addWidget(header)
+
+        #  Body
+        body = QWidget()
+        body_layout = QVBoxLayout(body)
+        body_layout.setContentsMargins(28, 20, 28, 24)
+        body_layout.setSpacing(16)
+
+        # Search Row
+        search_row = QFrame()
+        search_row.setObjectName("SearchRow")
+        search_row.setFixedHeight(42)
+        search_row.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)
+
+        sr_layout = QHBoxLayout(search_row)
+        sr_layout.setContentsMargins(14, 0, 8, 0)
+        sr_layout.setSpacing(6)
+
+        # Search icon
+        icon_lbl = QLabel()
+        icon_lbl.setObjectName("SearchIcon")
+        icon_lbl.setFixedSize(18, 18)
+        icon_lbl.setPixmap(QIcon(resource_path("Bin/Assets/search.png")).pixmap(16, 16))
+
+        # Text input
         self.search_bar = QLineEdit()
-        self.search_bar.setPlaceholderText("Search local mods...")
+        self.search_bar.setObjectName("ModSearch")
+        self.search_bar.setPlaceholderText(t("search_mods"))
         self.search_bar.textChanged.connect(self.refresh_list)
-        main_layout.addWidget(self.search_bar)
-        main_layout.addSpacing(15)
 
-        # Scroll List
+        # Vertical divider
+        divider = QFrame()
+        divider.setObjectName("SearchDivider")
+        divider.setFrameShape(QFrame.Shape.VLine)
+        divider.setFixedHeight(22)
+
+        # Refresh button
+        btn_refresh = QPushButton()
+        btn_refresh.setObjectName("SearchActionBtn")
+        btn_refresh.setFixedSize(30, 30)
+        btn_refresh.setToolTip("Refresh mod list")
+        btn_refresh.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_refresh.setIcon(QIcon(resource_path("Bin/Assets/refresh.png")))
+        btn_refresh.setIconSize(QSize(16, 16))
+        btn_refresh.clicked.connect(self.refresh_list)
+
+        # Open folder button
+        btn_folder = QPushButton()
+        btn_folder.setObjectName("SearchActionBtn")
+        btn_folder.setFixedSize(30, 30)
+        btn_folder.setToolTip("Open Mods folder")
+        btn_folder.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_folder.setIcon(QIcon(resource_path("Bin/Assets/folder.png")))
+        btn_folder.setIconSize(QSize(16, 16))
+        btn_folder.clicked.connect(self._open_mods_folder)
+
+        sr_layout.addWidget(icon_lbl)
+        sr_layout.addWidget(self.search_bar, 1)
+        sr_layout.addWidget(divider)
+        sr_layout.addWidget(btn_refresh)
+        sr_layout.addWidget(btn_folder)
+
+        # Scroll area
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.list_container = QWidget()
         self.list_container.setObjectName("ScrollContent")
         self.list_layout = QVBoxLayout(self.list_container)
-        self.list_layout.setSpacing(10)
+        self.list_layout.setSpacing(8)
+        self.list_layout.setContentsMargins(0, 0, 4, 0)
         self.list_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.scroll.setWidget(self.list_container)
-        
-        main_layout.addWidget(self.scroll)
+
+        body_layout.addWidget(search_row)
+        body_layout.addWidget(self.scroll, 1)
+
+        root.addWidget(body, 1)
         self.refresh_list()
+
+    def _open_mods_folder(self):
+        mods_path = Path(resource_path("Mods"))
+        if not mods_path.exists():
+            mods_path.mkdir(parents=True, exist_ok=True)
+        if sys.platform == "win32":
+            os.startfile(str(mods_path))
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", str(mods_path)])
+        else:
+            subprocess.Popen(["xdg-open", str(mods_path)])
+
+    def _update_mod_count(self):
+        mods = self.manager.scan_mods()
+        total = len(mods)
+        enabled = sum(1 for m in mods if m.is_enabled)
+        self._lbl_mod_count.setText(f"{enabled} OF {total} ENABLED")
 
     def refresh_list(self):
         while self.list_layout.count():
             child = self.list_layout.takeAt(0)
-            if child.widget(): child.widget().deleteLater()
-            
+            if child.widget():
+                child.widget().deleteLater()
+
         search_text = self.search_bar.text().lower()
         mods = self.manager.scan_mods()
-        
-        for mod in mods:
-            if search_text in mod.display_name.lower() or search_text in mod.author.lower():
-                card = ModCard(mod, self.manager, self.is_game_running, self)
-                self.list_layout.addWidget(card)
+        visible = [
+            m for m in mods
+            if search_text in m.display_name.lower() or search_text in m.author.lower()
+        ]
+
+        self._update_mod_count()
+
+        if not visible:
+            empty = QLabel("No mods found" if search_text else "No mods installed")
+            empty.setObjectName("EmptyLabel")
+            empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.list_layout.addStretch()
+            self.list_layout.addWidget(empty)
+            self.list_layout.addStretch()
+            return
+
+        for mod in visible:
+            card = ModCard(mod, self.manager, self.is_game_running, self)
+            self.list_layout.addWidget(card)
 
 # ─────────────────────────────────────────────
 # BACKGROUND WIDGET
@@ -876,13 +1089,6 @@ class BackgroundWidget(QWidget):
 
 # ─────────────────────────────────────────────
 # OVERLAY WIDGET
-# Sits above the background image but below all UI widgets to create dark effect.
-# This makes seeing icons easier in the launcher. (especially the bottom bar and launch button)
-# Paints two effects:
-#   1. Bottom gradient: transparent then dark over the lower ~45% of the
-#      window so the launch bar always has a dark surface to sit on.
-#   2. Top bar frosted panel: a semi-transparent dark rect behind the
-#      top bar so icons are readable against the background image.
 # ─────────────────────────────────────────────
 class OverlayWidget(QWidget):
     TOP_BAR_HEIGHT = 60
@@ -1304,6 +1510,12 @@ class AuroraUI(QMainWindow):
         self.monitor_thread.game_started.connect(self._show_game_overlay)
         self.monitor_thread.access_denied.connect(self._show_access_denied_popup)
         self.monitor_thread.start()
+
+        if hasattr(self, 'rpc'):
+            self.rpc.set_launching()
+        self.monitor_thread.game_started.connect(lambda: hasattr(self, 'rpc') and self.rpc.set_in_game())
+        self.monitor_thread.finished.connect(lambda: hasattr(self, 'rpc') and self.rpc.set_idle())
+
         ToastNotification(self.central_widget, t("toast_launching"), False)
 
     def _show_access_denied_popup(self):
