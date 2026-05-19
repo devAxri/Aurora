@@ -11,8 +11,6 @@ def get_app_dir():
 
 
 class ErrorTriggeredFileHandler(logging.Handler):
-    """Buffers all records in memory; writes to disk only on ERROR or CRITICAL."""
-
     def __init__(self, log_dir):
         super().__init__(level=logging.DEBUG)
         self.log_dir = log_dir
@@ -54,21 +52,10 @@ class ErrorTriggeredFileHandler(logging.Handler):
 
 
 class _ConsoleSignaller(QObject):
-    """
-    Tiny QObject that lives on the main thread and owns the signal.
-    Because it's created on the main thread, connected slots always
-    execute on the main thread regardless of which thread emits.
-    """
     append_html = pyqtSignal(str)
 
 
 class DevConsoleHandler(logging.Handler):
-    """
-    Writes log records to an in-app QTextEdit console.
-    Thread-safe: uses a Qt signal so background threads (GameMonitorThread)
-    can log freely — the signal connection guarantees delivery on the main thread.
-    """
-
     def __init__(self):
         super().__init__(level=logging.DEBUG)
         self._widget = None
