@@ -15,12 +15,21 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize, QThread, QPoint, QTimer, QPropertyAnimation, pyqtSignal, QVariant, QVariantAnimation, QEasingCurve
 from PyQt6.QtGui import QPixmap, QIcon, QPainter, QColor
 from src.logger import logger, dev_console_handler, file_handler
-from src.path_finder import validate_path, get_game_directory
+from src.path_finder import validate_path, get_game_directory, get_local_version
 from src.styles import MAIN_STYLE, SETTING_STYLE, TOAST_STYLE, POPUP_STYLE, MOD_MANAGER_STYLE
 from src import config_manager as cfg
 from src.translator import Translator, t
 from src.engine import get_app_dir
 from src.mod_manager import ModManager
+import urllib.request
+
+def GetOnlineVersion():
+    try:
+        with urllib.request.urlopen("https://raw.githubusercontent.com/Daturaxoxo/Aurora/refs/heads/main/dev/VERSION") as response:
+            version_info = response.read().decode('utf-8').strip()
+        return version_info
+    except Exception as e:
+        logger.warning("Couldn't get version information GitHub ")
 
 # ─────────────────────────────────────────────
 # ENGINE THREAD
@@ -126,7 +135,8 @@ class PopupDialog(QWidget):
 
         card = QFrame(self)
         card.setObjectName("PopupContainer")
-        card.setFixedSize(460, 220)
+        card.setFixedWidth(460)
+        card.setMinimumHeight(220)
         card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)
         card.setStyleSheet(POPUP_STYLE)
         card.move(
@@ -143,6 +153,7 @@ class PopupDialog(QWidget):
         lbl_msg = QLabel(message)
         lbl_msg.setObjectName("PopupMessage")
         lbl_msg.setWordWrap(True)
+        lbl_msg.setFixedWidth(460 - 64)
 
         btn_row = QHBoxLayout()
         btn_row.setSpacing(12)
@@ -169,6 +180,12 @@ class PopupDialog(QWidget):
         card_layout.addWidget(lbl_msg)
         card_layout.addStretch()
         card_layout.addLayout(btn_row)
+
+        card.adjustSize()
+        card.move(
+            (self.width() - card.width()) // 2,
+            (self.height() - card.height()) // 2
+        )
 
         self.opacity_effect = QGraphicsOpacityEffect(self)
         self.setGraphicsEffect(self.opacity_effect)
@@ -304,7 +321,6 @@ class SettingRow(QFrame):
         layout.addWidget(self.toggle)
 
     def handle_toggle(self):
-        """Called by AnimatedToggle.mousePressEvent via self.parent()."""
         if self._on_toggle:
             self._on_toggle(self.toggle.isChecked())
 
@@ -402,7 +418,7 @@ class SettingsOverlay(QFrame):
         root.addWidget(sidebar)
         root.addWidget(self.stack, 1)
 
-        # Connect sidebar buttons and set initial active state
+        # Connect side buttons
         for i, b in enumerate(self._sidebar_btns):
             b.clicked.connect(lambda _, idx=i: self._switch_page(idx))
         self._switch_page(0)
@@ -422,6 +438,9 @@ class SettingsOverlay(QFrame):
         self.btn_general.setText(t("general"))
         self.btn_launcher.setText(t("launcher"))
         self.btn_developer.setText(t("developer"))
+        self.general_page_title.setText(t("general"))
+        self.launcher_page_title.setText(t("launcher"))
+        self.developer_page_title.setText(t("developer"))
         self._lbl_language.setText(t("language"))
         self._lbl_language_desc.setText(t("language_desc"))
         self._lbl_game_dir.setText(t("game_directory"))
@@ -459,9 +478,9 @@ class SettingsOverlay(QFrame):
     def _create_general_page(self):
         page, layout = self._make_page()
 
-        page_title = QLabel("General")
-        page_title.setStyleSheet(_PAGE_TITLE_STYLE)
-        layout.addWidget(page_title)
+        self.general_page_title = QLabel(t("general"))
+        self.general_page_title.setStyleSheet(_PAGE_TITLE_STYLE)
+        layout.addWidget(self.general_page_title)
         layout.addSpacing(24)
 
         layout.addWidget(self._section_label("Appearance"))
@@ -495,7 +514,7 @@ class SettingsOverlay(QFrame):
 
         from src.config_manager import LANG_NAMES
         self._lang_box = QComboBox()
-        self._lang_box.addItems(["English", "Türkçe", "中文", "日本語", "Español"])
+        self._lang_box.addItems(["English", "中文", "日本語", "Español", "Deutsch", "Türkçe"])
         self._lang_box.setFixedWidth(160)
         current_code = cfg.get_language()
         display = LANG_NAMES.get(current_code, "English")
@@ -535,9 +554,9 @@ class SettingsOverlay(QFrame):
     def _create_launcher_page(self):
         page, layout = self._make_page()
 
-        page_title = QLabel("Launcher")
-        page_title.setStyleSheet(_PAGE_TITLE_STYLE)
-        layout.addWidget(page_title)
+        self.launcher_page_title = QLabel(t("launcher"))
+        self.launcher_page_title.setStyleSheet(_PAGE_TITLE_STYLE)
+        layout.addWidget(self.launcher_page_title)
         layout.addSpacing(24)
 
         # Game Directory
@@ -661,9 +680,9 @@ class SettingsOverlay(QFrame):
     def _create_developer_page(self):
         page, layout = self._make_page()
 
-        page_title = QLabel("Developer")
-        page_title.setStyleSheet(_PAGE_TITLE_STYLE)
-        layout.addWidget(page_title)
+        self.developer_page_title = QLabel(t("developer"))
+        self.developer_page_title.setStyleSheet(_PAGE_TITLE_STYLE)
+        layout.addWidget(self.developer_page_title)
         layout.addSpacing(24)
 
         layout.addWidget(self._section_label("Debug"))
@@ -798,7 +817,7 @@ class ModImage(QLabel):
 
 
 class ModCard(QFrame):
-    def __init__(self, mod, manager, is_game_running, parent_overlay):
+    def __init__(self, mod, manager, parent_overlay):
         super().__init__()
         self.setObjectName("ModCard")
         self.setFixedHeight(72)
@@ -806,8 +825,6 @@ class ModCard(QFrame):
 
         self.mod = mod
         self.manager = manager
-        self.is_game_running = is_game_running
-        self.session_initial_state = mod.is_enabled
         self.parent_overlay = parent_overlay
 
         layout = QHBoxLayout(self)
@@ -857,12 +874,6 @@ class ModCard(QFrame):
         layout.addLayout(info_vbox)
         layout.addStretch()
 
-        # Restart Badge
-        self.restart_badge = QLabel(t("mod_manager_restart"))
-        self.restart_badge.setObjectName("RestartBadge")
-        self.restart_badge.setVisible(False)
-        layout.addWidget(self.restart_badge)
-
         # Toggle
         self.toggle = AnimatedToggle(self)
         self.toggle.setChecked(mod.is_enabled)
@@ -883,9 +894,6 @@ class ModCard(QFrame):
     def handle_toggle(self):
         new_state = self.toggle.isChecked()
 
-        if self.is_game_running:
-            self.restart_badge.setVisible(new_state != self.session_initial_state)
-
         new_folder_name = self.manager.toggle_mod(self.mod)
         if new_folder_name:
             self.mod.folder_name = new_folder_name
@@ -894,11 +902,10 @@ class ModCard(QFrame):
         self.parent_overlay._update_mod_count()
 
 class ModManagerOverlay(QFrame):
-    def __init__(self, parent, mod_manager, is_game_running):
+    def __init__(self, parent, mod_manager):
         super().__init__(parent)
         self.setObjectName("ModManagerOverlay")
         self.manager = mod_manager
-        self.is_game_running = is_game_running
 
         self.setGeometry(240, 80, 800, 560)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)
@@ -920,7 +927,7 @@ class ModManagerOverlay(QFrame):
 
         title_col = QVBoxLayout()
         title_col.setSpacing(2)
-        lbl_title = QLabel(t("mod_manager") if hasattr(self, "_tr") else "Mod Manager")
+        lbl_title = QLabel(t("mod_manager"))
         lbl_title.setObjectName("ModManagerTitle")
         self._lbl_mod_count = QLabel("")
         self._lbl_mod_count.setObjectName("ModCount")
@@ -1019,7 +1026,7 @@ class ModManagerOverlay(QFrame):
         self.refresh_list()
 
     def _open_mods_folder(self):
-        mods_path = Path(resource_path("Mods"))
+        mods_path = Path(get_app_dir()) / "Mods"
         if not mods_path.exists():
             mods_path.mkdir(parents=True, exist_ok=True)
         if sys.platform == "win32":
@@ -1033,7 +1040,9 @@ class ModManagerOverlay(QFrame):
         mods = self.manager.scan_mods()
         total = len(mods)
         enabled = sum(1 for m in mods if m.is_enabled)
-        self._lbl_mod_count.setText(f"{enabled} OF {total} ENABLED")
+        TMP_desc_a = t("mod_manager_desc_a") or "OF"
+        TMP_desc_b = t("mod_manager_desc_b") or "ENABLED"
+        self._lbl_mod_count.setText(f"{enabled} {TMP_desc_a} {total} {TMP_desc_b}")
 
     def refresh_list(self):
         while self.list_layout.count():
@@ -1060,7 +1069,7 @@ class ModManagerOverlay(QFrame):
             return
 
         for mod in visible:
-            card = ModCard(mod, self.manager, self.is_game_running, self)
+            card = ModCard(mod, self.manager, self)
             self.list_layout.addWidget(card)
 
 # ─────────────────────────────────────────────
@@ -1115,7 +1124,6 @@ class OverlayWidget(QWidget):
 
         # Frosted Panel
         painter.fillRect(0, 0, w, self.TOP_BAR_HEIGHT, QColor(16, 10, 27, 160))
-
         painter.end()
 
 
@@ -1191,7 +1199,6 @@ class AuroraOverlayWindow(QWidget):
         painter.end()
 
     def show_over_game(self, game_rect=None):
-        """Position over HTGame.exe's window then fade in."""
         if game_rect is not None:
             x, y = game_rect.left, game_rect.top
         else:
@@ -1202,7 +1209,6 @@ class AuroraOverlayWindow(QWidget):
         self._fade_in()
 
     def _find_game_position(self):
-        """Find the game window position"""
         try:
             result = [20, 20]
             def enum_cb(hwnd, _):
@@ -1302,28 +1308,45 @@ class AuroraUI(QMainWindow):
         if cfg.get_dev_mode():
             self.set_dev_console(True)
 
+        self.check_for_updates()
         self.refresh_launch_state()
 
     # ── TRANSLATION ──────────────────────────
     def retranslate_ui(self):
         self.btn_search.setToolTip(t("search_tooltip"))
-        self.refresh_launch_state()
-
-    @property
-    def is_game_running(self) -> bool:
-        return (
-            hasattr(self, 'monitor_thread') and
-            self.monitor_thread is not None and
-            self.monitor_thread.isRunning()
-        )   
+        self.refresh_launch_state() 
 
     def toggle_mod_manager(self):
         if hasattr(self, 'mod_overlay') and self.mod_overlay.isVisible():
             self.mod_overlay.hide()
         else:
-            self.mod_overlay = ModManagerOverlay(self, self.mod_manager, self.is_game_running)
+            self.mod_overlay = ModManagerOverlay(self, self.mod_manager)
             self.mod_overlay.show()
             self.mod_overlay.raise_()
+    
+
+    # ── CHECKING FOR UPDATES ──────────────────────────────
+    def check_for_updates(self):
+        self.current_version = get_local_version()
+        self.online_version = GetOnlineVersion()
+        if self.current_version < self.online_version:
+            TMP_msg_a = t("update_available_message_a")
+            TMP_msg_b = t("update_available_message_b")
+            TMP_msg_c = t("update_current_version")
+            TMP_msg_d = t("update_new_version")
+            PopupDialog(
+                parent=self,
+                title=t("update_available_title"),
+                message=(
+                    f"{TMP_msg_a}\n\n"
+                    f"{TMP_msg_c}: {self.current_version}\n"
+                    f"{TMP_msg_d}: {self.online_version}\n\n"
+                    f"{TMP_msg_b}"
+                ),
+                confirm_text=t("update_available_confirm"),
+                cancel_text=t("cancel"),
+                on_confirm=lambda: webbrowser.open("https://github.com/Daturaxoxo/Aurora/releases/latest"),
+            )
 
     # ── TOP BAR ──────────────────────────────
     def setup_top_bar(self):
@@ -1385,6 +1408,16 @@ class AuroraUI(QMainWindow):
         self.btn_coffee.setIconSize(QSize(42, 42))
         self.btn_coffee.clicked.connect(lambda: webbrowser.open("https://ko-fi.com/daturaxoxo"))
 
+        self.btn_discord = QPushButton()
+        self.btn_discord.setIcon(QIcon(resource_path("Bin/Assets/discord.png")))
+        self.btn_discord.setIconSize(QSize(42, 42))
+        self.btn_discord.clicked.connect(lambda: webbrowser.open("https://discord.gg/bT4rkCzuBC"))
+
+        self.btn_gamebanana = QPushButton()
+        self.btn_gamebanana.setIcon(QIcon(resource_path("Bin/Assets/marketplace.png")))
+        self.btn_gamebanana.setIconSize(QSize(42, 42))
+        self.btn_gamebanana.clicked.connect(lambda: webbrowser.open("https://gamebanana.com/games/23012"))
+
         self.btn_search = QPushButton()
         self.btn_search.setObjectName("SearchButton")
         self.btn_search.setIcon(QIcon(resource_path("Bin/Assets/refresh.png")))
@@ -1402,6 +1435,8 @@ class AuroraUI(QMainWindow):
 
         bottom_layout.addWidget(self.btn_coffee)
         bottom_layout.addWidget(self.btn_folder)
+        bottom_layout.addWidget(self.btn_discord)
+        bottom_layout.addWidget(self.btn_gamebanana)
         bottom_layout.addStretch()
         bottom_layout.addWidget(self.btn_search)
         bottom_layout.addSpacing(10)
@@ -1410,11 +1445,6 @@ class AuroraUI(QMainWindow):
         self._bottom_bar.raise_()
 
     # ── HELPERS ──────────────────────────────
-    def _open_mods_folder(self):
-        mods_path = os.path.abspath("./Mods")
-        os.makedirs(mods_path, exist_ok=True)
-        os.startfile(mods_path)
-
     def toggle_settings(self):
         if self.settings_menu.isHidden():
             self.settings_menu.show()
@@ -1423,11 +1453,6 @@ class AuroraUI(QMainWindow):
             self.settings_menu.hide()
 
     def set_dev_console(self, enabled: bool):
-        """Shows or hides the dev console below the main window.
-        The window grows to fit the console, but the background image and
-        overlay are always clamped to 720px so the image never stretches.
-        The console sits below on a plain dark surface — like a drawer.
-        """
         console_h = self._dev_console.height()
         if enabled:
             total_h = 720 + console_h
