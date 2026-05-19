@@ -6,10 +6,6 @@ import threading
 import uuid
 from PyQt6.QtCore import QThread
 
-# ─────────────────────────────────────────────────────────────────────────────
-# LOW-LEVEL IPC HELPERS
-# ─────────────────────────────────────────────────────────────────────────────
-
 OP_HANDSHAKE = 0
 OP_FRAME     = 1
 OP_CLOSE     = 2
@@ -73,11 +69,7 @@ def _close_pipe(handle):
     import ctypes
     ctypes.windll.kernel32.CloseHandle(handle)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# DISCORD RPC
-# ─────────────────────────────────────────────────────────────────────────────
-
+# MAIN
 class DiscordRPC(QThread):
     CID = "1505644188060876920"
 
@@ -91,8 +83,6 @@ class DiscordRPC(QThread):
 
         self._pending_activity: dict | None = None
         self._start_timestamp = int(time.time())
-
-    # Public State Setters
 
     def set_idle(self):
         self._queue_activity({
@@ -117,7 +107,6 @@ class DiscordRPC(QThread):
         })
 
     def set_in_game(self):
-        """HTGame.exe is running."""
         self._queue_activity({
             "state":   "In-game",
             "details": "Playing NTE",
@@ -131,7 +120,6 @@ class DiscordRPC(QThread):
         })
 
     def stop(self):
-        """Gracefully disconnect. Call from closeEvent."""
         self._stop_event.set()
         self._clear_presence()
         self.quit()
@@ -197,12 +185,6 @@ class DiscordRPC(QThread):
     # QThread entry point
 
     def run(self):
-        """
-        Main loop:
-          1. Attempt to connect (retries every 15 s if Discord isn't open).
-          2. Flush any pending activity update every second.
-          3. Re-connect if the pipe drops.
-        """
         from src.logger import logger
 
         while not self._stop_event.is_set():
