@@ -45,6 +45,7 @@ def run_build():
         f"--add-data=Bin/cutils.dll{SEP}Bin",
         f"--add-data=Bin/Builtins{SEP}Bin/Builtins",
         f"--add-data=Lang{SEP}Lang",
+         f"--add-data=dev/VERSION{SEP}dev",
         "--hidden-import=psutil",
         "--hidden-import=psutil._pswindows",
         "--python-option=u",
@@ -72,7 +73,12 @@ def run_build():
     shutil.move(src_exe, dst_exe)
 
     if os.path.exists("./Bin"):
-        shutil.copytree("./Bin", os.path.join(DIST_DIR, "Bin"), dirs_exist_ok=True)
+        shutil.copytree(
+            "./Bin",
+            os.path.join(DIST_DIR, "Bin"),
+            dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns("Assets")
+        )
 
     zip_name = f"{APP_NAME}_v{VERSION}.zip"
     print(f"Creating archive: {zip_name}")
