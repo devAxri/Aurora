@@ -27,9 +27,18 @@
     "no_drive_line": "ドライブライン非表示",
     "no_drive_line_desc": "運転中に表示される3D GPSナビゲーションライン (クレジット： Rokkudayo) ",
     "search_mods": "ローカルMODを検索...",
+    "mod_manager": "Modマネージャー",
+    "mod_manager_desc_a": "中",
+    "mod_manager_desc_b": "有効",
     "mod_manager_unknown": "不明",
     "mod_manager_author": "作者: ",
     "mod_manager_restart": "再起動",
     "discord_rpc": "Discord RPC",
-    "discord_rpc_desc": "内蔵 Discord RPC の有効化/無効化"
+    "discord_rpc_desc": "内蔵 Discord RPC の有効化/無効化",
+    "update_available_title": "アップデートあり",
+    "update_current_version": "現在のバージョン",
+    "update_new_version": "新しいバージョン",
+    "update_available_message_a": "の新バージョンがあります！",
+    "update_available_message_b": "GitHubを開いて最新のアップデートをダウンロードしますか？",
+    "update_available_confirm": "ブラウザで開く"
 }
