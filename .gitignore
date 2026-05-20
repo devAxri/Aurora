@@ -1,0 +1,11 @@
+# Created by Aurora at runtime
+config.json
+/Mods
+/Logs
+__pycache__
+
+# Build Artifacts
+/build
+/dist
+*.spec
+*.zip
