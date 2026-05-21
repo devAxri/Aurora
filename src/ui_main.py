@@ -437,7 +437,6 @@ class AuroraUI(QMainWindow):
                 self.btn_launch.setText(f"    {t('launch_invalid')}")
                 
         if hasattr(self, "btn_search"):
-            print(self.is_valid)
             if self.is_valid:
                 self.btn_search.hide()
             else:
